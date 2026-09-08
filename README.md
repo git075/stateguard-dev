@@ -38,7 +38,7 @@ If an agent hallucinates mid-workflow and outputs malformed JSON, deletes critic
 
 Install StateGuard:
 ```bash
-pip install stateguard
+pip install stateguard-core
 ```
 
 Wrap your existing LangGraph nodes. You don't need to rewrite your agents!

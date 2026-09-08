@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "stateguard"
+name = "stateguard-core"
 version = "0.1.0"
 description = "See exactly why your AI agent gave wrong output. Debug multi-agent workflows in seconds."
 readme = "README.md"
