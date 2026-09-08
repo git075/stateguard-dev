@@ -12,6 +12,10 @@
   <p>
     <em>Stop LLM hallucinations from permanently corrupting your agent's memory.</em>
   </p>
+  
+  <br/>
+  <img src="assets/demo.png" alt="StateGuard intercepting a hallucination and rolling back memory" width="800"/>
+  <br/>
 </div>
 
 ---
