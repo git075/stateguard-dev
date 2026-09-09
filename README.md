@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="assets/logo.jpg" alt="StateGuard Logo" width="200"/>
   <h1>🛡️ StateGuard</h1>
   <p><strong>The Transactional Firewall for AI Agents</strong></p>
 
