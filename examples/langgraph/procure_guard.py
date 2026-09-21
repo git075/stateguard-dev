@@ -51,7 +51,7 @@ def run_procurement():
 
     print("Starting procurement saga...")
     try:
-        with Saga(state, saga_id="procure-tx-1") as tx:
+        with Saga(state, saga_id="procure-tx-1"):
             step1_reserve_vendor(state)
             step2_process_payment(state)
             step3_finalize_order(state)

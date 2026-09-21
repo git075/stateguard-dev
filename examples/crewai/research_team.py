@@ -18,7 +18,7 @@ guard.add(require_length("research_output", min_len=50))  # Must produce substan
 
 
 def run_research_pipeline():
-    with Saga(state, saga_id="research-crew-001") as tx:
+    with Saga(state, saga_id="research-crew-001"):
         # Simulate CrewAI execution outcome
         mock_crew_output = (
             "StateGuard provides transactional state management for AI agents, "

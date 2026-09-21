@@ -10,7 +10,7 @@ guard.add(require_bounds("budget", min_val=0))
 def agent_node(state_dict: dict) -> dict:
     state = GuardedState(state_dict)
 
-    with Saga(state) as tx:
+    with Saga(state):
         # Simulate agent execution
         state["budget"] -= 500  # Mutate state within saga
 

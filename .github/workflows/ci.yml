@@ -9,8 +9,10 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,langgraph]"
       - name: Run tests with coverage
-        run: pytest --cov=stateguard
+        env:
+          PYTHONPATH: src
+        run: pytest --cov=stateguard tests/
       - name: Lint with ruff
         run: ruff check .
