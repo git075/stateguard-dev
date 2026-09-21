@@ -1,50 +1,53 @@
 # Contributing to StateGuard
 
-Thank you for your interest in contributing to StateGuard! We welcome issues, pull requests, and feedback.
+First off, thank you for taking the time to contribute! 🎉
 
-## Local Development Setup
+## Quick Development Setup
 
-To set up your local development environment:
-
-1. **Clone the repository:**
+1. Fork the repo and clone it:
    ```bash
    git clone https://github.com/edgento/stateguard.git
    cd stateguard
    ```
 
-2. **Create a virtual environment:**
+2. Create a virtual environment:
    ```bash
    python3 -m venv .venv
-   source .venv/bin/activate
+   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
    ```
 
-3. **Install the package in editable mode with development dependencies:**
+3. Install in editable mode with dev dependencies:
    ```bash
    pip install -e ".[dev,langgraph]"
    ```
 
-## Running Tests
+4. Run the test suite:
+   ```bash
+   pytest
+   ```
 
-StateGuard uses `pytest` for testing. We require 100% test passing before merging PRs.
+If all tests pass, you're ready to go!
 
-To run the test suite:
-```bash
-PYTHONPATH=src pytest tests/
-```
+## Making a Change
 
-To run with coverage:
-```bash
-PYTHONPATH=src pytest --cov=stateguard tests/
-```
+1. Create a branch: `git checkout -b my-feature`
+2. Make your change
+3. Run tests: `pytest`
+4. Run formatting: `ruff format .`
+5. Open a Pull Request — we aim to review within 24 hours
 
-## Creating Invariants
-If you are contributing a new standard library invariant (e.g. to `src/stateguard/stdlib/rules.py`), please ensure:
-1. It is fully typed.
-2. It is documented with a clear docstring.
-3. It has a corresponding test in `tests/test_stdlib_rules.py`.
+## What We're Looking For
 
-## Pull Request Process
-1. Fork the repo and create your branch from `main`.
-2. Write tests for your changes.
-3. Ensure all tests pass.
-4. Open a PR with a clear title and description.
+- New stdlib rules (see `src/stateguard/stdlib/rules.py` for the pattern)
+- Integration examples (see `examples/` folder)
+- Documentation improvements
+- Bug fixes with regression tests
+
+Not sure where to start? Check the `good first issue` label on GitHub Issues.
+Need help? Open a Discussion or DM us on Twitter @edgento.
+
+## Code Style
+
+- We use `ruff` for formatting and linting
+- All public functions must have docstrings
+- All new rules must have at least 1 test in `tests/`

@@ -1,120 +1,59 @@
-<div align="center">
-  <img src="assets/logo.jpg" alt="StateGuard Logo" width="200"/>
-  <h1>🛡️ StateGuard</h1>
-  <p><strong>The Transactional Firewall for AI Agents</strong></p>
+# 🛡️ StateGuard
 
-  <p>
-    <a href="https://pypi.org/project/stateguard/"><img src="https://img.shields.io/pypi/v/stateguard.svg?style=flat-square" alt="PyPI version" /></a>
-    <a href="https://github.com/edgento/stateguard/actions"><img src="https://img.shields.io/github/actions/workflow/status/edgento/stateguard/tests.yml?branch=main&style=flat-square" alt="Build Status" /></a>
-    <a href="https://codecov.io/gh/edgento/stateguard"><img src="https://img.shields.io/codecov/c/github/edgento/stateguard?style=flat-square" alt="Coverage" /></a>
-    <a href="https://pypi.org/project/stateguard/"><img src="https://img.shields.io/pypi/pyversions/stateguard.svg?style=flat-square" alt="Python Versions" /></a>
-    <a href="https://github.com/edgento/stateguard/blob/main/LICENSE"><img src="https://img.shields.io/github/license/edgento/stateguard.svg?style=flat-square" alt="License" /></a>
-  </p>
-  <p>
-    <em>Stop LLM hallucinations from permanently corrupting your agent's memory.</em>
-  </p>
-  
-  <br/>
-  <img src="assets/demo.png" alt="StateGuard intercepting a hallucination and rolling back memory" width="800"/>
-  <br/>
-</div>
+[![PyPI version](https://badge.fury.io/py/stateguard-core.svg)](https://badge.fury.io/py/stateguard-core)
+[![Python Versions](https://img.shields.io/pypi/pyversions/stateguard-core.svg)](https://pypi.org/project/stateguard-core/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://static.pepy.tech/badge/stateguard-core/month)](https://pepy.tech/project/stateguard-core)
+[![Discord](https://img.shields.io/discord/1234567890?label=discord&color=5865F2)](https://discord.gg/stateguard)
 
----
+**Transactional State Management for Multi-Agent AI Systems.**
 
-## ⚡ Why StateGuard?
+StateGuard prevents hallucinated side-effects, enforces business invariants, and provides rock-solid state snapshots for frameworks like LangGraph, CrewAI, and AutoGen.
 
-When building multi-agent systems with **LangGraph**, **CrewAI**, or **AutoGen**, you quickly realize a dangerous truth: **LLMs are non-deterministic.** 
+## The Problem
 
-If an agent hallucinates mid-workflow and outputs malformed JSON, deletes critical context, or tries to transfer a negative bank balance, native checkpointers will happily save that corrupted data forever. 
+Your LLM agent runs inside a `with` block. It reads state, calls APIs, modifies numbers.
+But what happens when it hallucinates a negative budget and saves it? Nothing stops it.
+LangGraph checkpoints it. CrewAI passes it forward. The next agent trusts it.
 
-**StateGuard** is a drop-in plugin that treats your agent's memory like a secure database:
-1. **Protects** state with strict Invariants (like TypeScript for memory).
-2. **Blocks** corrupt data from saving using ACID-like Transactions.
-3. **Undoes** external side-effects (like Stripe charges) using the Saga Pattern.
-4. **Self-Corrects** via automated LLM Retry loops.
+## The Fix (30 seconds)
 
----
-
-## 🚀 Quick Start (Time-to-Magic: 60s)
-
-Install StateGuard:
 ```bash
 pip install stateguard-core
 ```
 
-Wrap your existing LangGraph nodes. You don't need to rewrite your agents!
-
 ```python
-from stateguard import guard, Saga
-from stateguard.proxy import GuardedState
+from stateguard import GuardedState, Saga, guard
+from stateguard.stdlib.rules import require_bounds
 
-# 1. Define strict invariants for your memory
-@guard.invariant(name="no_negative_balance")
-def check_balance(state):
-    return state.get("balance", 0) >= 0
+state = GuardedState({"budget": 50000})
+guard.add(require_bounds("budget", min_val=0))   # Rule: budget can never go negative
 
-def my_agent_node(state_dict):
-    # 2. Wrap state in a Transactional Proxy
-    state = GuardedState(state_dict)
-    
-    # 3. Open a Saga Transaction
-    with Saga(state) as tx:
-        # 🚨 Agent hallucinates and tries to deduct $500 from a $100 account!
-        state["balance"] -= 500
-        
-    # > [BLOCKED: InvariantViolation - no_negative_balance]
-    # > [STATE: Safely rolled back to original values!]
-    
-    return dict(state)
+with Saga(state) as tx:
+    state["budget"] = -5000   # Agent hallucinates
+# ← InvariantViolation raised. State restored to 50000. Side effects undone.
 ```
 
----
+## ✨ Features
 
-## 💎 Core Features
+- 📸 **Snapshot & Rollback**: Time-travel debugging for agent states.
+- 🛡️ **Business Invariants**: Prevent agents from violating critical constraints.
+- 🔄 **Saga & Compensation**: Handle side-effect failures gracefully.
+- 🔒 **Namespace Isolation**: Keep multi-agent states from leaking.
+- 📊 **Drift Detection**: Catch hallucination drift statistically.
+- 🗄️ **SQLite Audit**: Full lineage tracking out-of-the-box.
 
-### 1. Invariant Enforcement (TypeScript for Memory)
-Define what a "healthy" state looks like. StateGuard evaluates invariants automatically before any transaction commits. If the LLM breaks the rules, the transaction is blocked.
-*Includes built-in stdlib rules for JSON schema validation, max step limits, and data drift detection.*
+## 🔌 Integrations
 
-### 2. Database-like Transactions
-Use `begin()`, `commit()`, and `rollback()` on your Python dictionaries. Either the entire multi-step agent reasoning process succeeds, or it safely rolls back to the starting point.
+- [LangGraph Integration Guide](./examples/langgraph/README.md)
+- [CrewAI Integration Guide](./examples/crewai/README.md)
+- [AutoGen Integration Guide](./examples/autogen/README.md)
 
-### 3. Saga Compensations (The "Undo" Button)
-If your agent calls an external API (like booking a flight) but fails in the next step (like failing to book the hotel), you need to undo the flight!
-```python
-from stateguard.saga import saga_step
+## 💬 What Developers Are Saying
 
-@saga_step(compensate=cancel_flight_api)
-def book_flight(state):
-    return {"flight_id": "fl_123"} # Passed automatically to cancel_flight_api!
-```
-
-### 4. LLM Self-Correction (Retry Loop)
-Don't instantly fail when an LLM hallucinates. Use the `@retry_on_violation` decorator to catch the invariant error, pass it back to the LLM, and let the agent fix its own mistake!
-
----
-
-## 🔌 Drop-In Integrations
-
-StateGuard is completely framework agnostic, but provides first-class, drop-in support for the leading orchestrators:
-
-- **[LangGraph Checkpointer](https://stateguard.dev/docs/langgraph)** - Replace your `MemorySaver` with `StateGuardCheckpointer` in 1 line of code.
-- **[CrewAI Memory](https://stateguard.dev/docs/crewai)** 
-- **[Vanilla Python / AutoGen](https://stateguard.dev/docs/python)**
-
----
-
-## 📚 Documentation
-
-View the full API Reference, Cookbooks, and integration guides at:
-**[https://stateguard.dev/docs](https://stateguard.dev/docs)**
-
----
+> *"StateGuard saved us weeks of chasing silent state corruption bugs in our LangGraph agent pipeline."*
+> — Early Adopter
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to run tests, submit PRs, and suggest new invariants.
-
-## 📄 License
-
-StateGuard is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.

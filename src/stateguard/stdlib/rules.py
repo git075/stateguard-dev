@@ -269,3 +269,23 @@ def max_steps_breaker(key: str = "step_count", max_steps: int = 10, mode: str = 
         mode=mode,
         error_message=f"Step count exceeded max limit of {max_steps}.",
     )
+
+
+def require_not_empty(key: str, mode: str = "block") -> Invariant:
+    """Ensures a string or list field is present and not empty."""
+
+    def fn(state: Any) -> bool:
+        val = state.get(key)
+        if val is None:
+            return False
+        if hasattr(val, "__len__") and len(val) == 0:
+            return False
+        return True
+
+    return Invariant(
+        fn,
+        name=f"require_not_empty_{key}",
+        mode=mode,
+        error_message=f"Field '{key}' must not be empty.",
+    )
+

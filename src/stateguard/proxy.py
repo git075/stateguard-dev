@@ -72,7 +72,7 @@ class GuardedState(MutableMapping[str, Any]):
             RuntimeError: If no transaction is active (snapshot stack is empty).
         """
         if not self._snapshot_stack:
-            raise RuntimeError("Cannot rollback: No active transaction snapshot stack.")
+            raise RuntimeError("Cannot rollback: No active transaction. Did you forget to call begin() or use 'with Saga(state):'?")
         self._data = self._snapshot_stack.pop()
 
     @property

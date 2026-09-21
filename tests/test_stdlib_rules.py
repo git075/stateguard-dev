@@ -216,3 +216,25 @@ def test_require_schema(registry):
         "is_active": True,
         "extra_field": "hello"
     })[0].is_valid
+
+
+def test_require_not_empty(registry):
+    rule = rules.require_not_empty("data")
+    registry.add(rule)
+
+    # Valid string and list
+    assert registry.check({"data": "hello"})[0].is_valid
+    assert registry.check({"data": [1, 2, 3]})[0].is_valid
+
+    # Invalid empty string
+    with pytest.raises(InvariantViolation):
+        registry.check({"data": ""})
+
+    # Invalid empty list
+    with pytest.raises(InvariantViolation):
+        registry.check({"data": []})
+
+    # Invalid missing/None
+    with pytest.raises(InvariantViolation):
+        registry.check({"other": "val"})
+

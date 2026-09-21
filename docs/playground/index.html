@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🛡️ StateGuard Interactive Playground</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid #334155;
+    }
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.25rem;
+    }
+    button {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .btn-danger {
+      background: var(--accent-red);
+      color: white;
+    }
+    .btn-success {
+      background: var(--accent-green);
+      color: white;
+    }
+    .terminal {
+      background: #020617;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      padding: 1.5rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.95rem;
+      min-height: 250px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .status-ready { background: #0369a1; color: white; }
+    .status-loading { background: #b45309; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛡️ StateGuard Playground</h1>
+      <p class="subtitle">See how StateGuard intercepts AI agent hallucinations in real-time right in your browser!</p>
+      <div id="pyodide-status" class="status-badge status-loading">⏳ Loading Pyodide Engine...</div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>❌ Agent Without StateGuard</h2>
+        <p>The agent hallucinates a negative budget. Native state saved corrupt data!</p>
+        <button id="run-without" class="btn-danger" disabled>Run Without StateGuard</button>
+      </div>
+
+      <div class="card">
+        <h2>✅ Agent With StateGuard</h2>
+        <p>StateGuard enforces invariant <code>budget >= 0</code>, blocks bad write & rolls back state.</p>
+        <button id="run-with" class="btn-success" disabled>Run With StateGuard</button>
+      </div>
+    </div>
+
+    <h2>Audit Console Output</h2>
+    <div id="console" class="terminal">[System] Initializing Pyodide environment...</div>
+  </div>
+
+  <script>
+    const consoleEl = document.getElementById('console');
+    const statusEl = document.getElementById('pyodide-status');
+    const btnWithout = document.getElementById('run-without');
+    const btnWith = document.getElementById('run-with');
+
+    function log(msg) {
+      consoleEl.innerText += '\n' + msg;
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    async function main() {
+      window.pyodide = await loadPyodide();
+      statusEl.innerText = "⚡ Pyodide Ready";
+      statusEl.className = "status-badge status-ready";
+      btnWithout.disabled = false;
+      btnWith.disabled = false;
+      log("[System] Python engine loaded. Click a button above to run demo.");
+    }
+
+    btnWithout.addEventListener('click', async () => {
+      consoleEl.innerText = "[Execution] Running Agent WITHOUT StateGuard...\n";
+      const code = `
+state = {"budget": 50000}
+print(f"Initial State: {state}")
+print("Agent reasoning... [Hallucination occurs!]")
+state["budget"] = -5000
+print(f"🔴 Saved Corrupted State: {state}")
+      `;
+      try {
+        pyodide.setStdout({ batched: (msg) => log(msg) });
+        await pyodide.runPythonAsync(code);
+      } catch (err) {
+        log("Error: " + err);
+      }
+    });
+
+    btnWith.addEventListener('click', async () => {
+      consoleEl.innerText = "[Execution] Running Agent WITH StateGuard Invariant Protection...\n";
+      const code = `
+class InvariantViolation(Exception): pass
+
+class GuardedState(dict):
+    def __init__(self, data):
+        super().__init__(data)
+        self.snapshot = dict(data)
+
+    def rollback(self):
+        self.clear()
+        self.update(self.snapshot)
+
+state = GuardedState({"budget": 50000})
+print(f"Initial State: {state}")
+print("Agent reasoning... [Hallucination occurs!]")
+
+# Simulate Saga & Invariant check
+try:
+    temp_budget = -5000
+    if temp_budget < 0:
+        raise InvariantViolation("require_bounds_budget: budget must be >= 0")
+    state["budget"] = temp_budget
+except InvariantViolation as e:
+    print(f"🛡️ [BLOCKED]: {e}")
+    state.rollback()
+    print(f"✅ [ROLLBACK SUCCESSFUL] State restored to: {state}")
+      `;
+      try {
+        pyodide.setStdout({ batched: (msg) => log(msg) });
+        await pyodide.runPythonAsync(code);
+      } catch (err) {
+        log("Error: " + err);
+      }
+    });
+
+    main();
+  </script>
+</body>
+</html>

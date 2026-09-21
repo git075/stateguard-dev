@@ -13,6 +13,7 @@ from .rules import (
     valid_transition,
     require_monotonic,
     max_steps_breaker,
+    require_not_empty,
 )
 
 from .compensations import (
@@ -30,7 +31,9 @@ __all__ = [
     "valid_transition",
     "require_monotonic",
     "max_steps_breaker",
+    "require_not_empty",
     "delete_file",
     "webhook_rollback",
     "log_warning",
 ]
+

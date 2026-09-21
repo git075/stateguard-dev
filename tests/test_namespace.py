@@ -105,3 +105,13 @@ def test_transaction_passthrough(base_state):
 
     assert not view.is_in_transaction
     assert view["agent1_score"] == 10
+
+
+def test_namespaced_state_to_dict_only_returns_visible_keys(base_state):
+    view = NamespacedState(base_state, "agent1_", shared_keys=["shared_data"])
+    d = view.to_dict()
+    assert "agent1_score" in d
+    assert "shared_data" in d
+    assert "agent2_score" not in d
+    assert d == {"agent1_score": 10, "shared_data": "public"}
+
