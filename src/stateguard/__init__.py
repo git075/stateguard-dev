@@ -10,6 +10,8 @@ from stateguard.invariants import (
 )
 from stateguard.saga import (
     CompensatingAction,
+    CompensationError,
+    CompensationFailure,
     Saga,
     SagaCoordinator,
     saga_step,
@@ -28,6 +30,20 @@ from stateguard.namespace import (
 from stateguard.drift import DriftDetector, DriftViolation
 from stateguard import stdlib
 
+
+def __getattr__(name: str):
+    """Lazy exports that need langgraph, so `import stateguard` works without it."""
+    if name == "StateGuardCheckpointer":
+        from stateguard.integrations.langgraph_checkpointer import StateGuardCheckpointer
+
+        return StateGuardCheckpointer
+    if name == "guarded_node":
+        from stateguard.integrations.langgraph import guarded_node
+
+        return guarded_node
+    raise AttributeError(f"module 'stateguard' has no attribute {name!r}")
+
+
 __all__ = [
     # Proxy
     "GuardedState",
@@ -41,6 +57,8 @@ __all__ = [
     "CompensatingAction",
     "Saga",
     "SagaCoordinator",
+    "CompensationError",
+    "CompensationFailure",
     "saga_step",
     "get_active_saga",
     # Store
@@ -56,5 +74,8 @@ __all__ = [
     "DriftViolation",
     # Stdlib
     "stdlib",
+    # LangGraph (lazy; requires `pip install langgraph`)
+    "StateGuardCheckpointer",
+    "guarded_node",
 ]
 __version__ = "0.1.0"

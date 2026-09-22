@@ -92,6 +92,7 @@ def guarded_node(
                 logger.error(f"[GUARDED NODE] '{_name}' raised {type(node_err).__name__}: {node_err}")
                 if saga_coordinator and saga_coordinator.is_active:
                     saga_coordinator.rollback(reason=str(node_err))
+                    saga_coordinator.raise_if_compensation_failed(node_err)
                 raise
 
             # Pre-commit invariant check
@@ -104,6 +105,7 @@ def guarded_node(
                 )
                 if saga_coordinator and saga_coordinator.is_active:
                     saga_coordinator.rollback(reason=f"Invariant: {inv_err.message}")
+                    saga_coordinator.raise_if_compensation_failed(inv_err)
                 raise
 
             guarded.commit()

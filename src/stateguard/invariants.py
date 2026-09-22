@@ -42,16 +42,23 @@ class Invariant:
         description: Optional[str] = None,
         mode: str = "block",
         error_message: Optional[str] = None,
+        raises: bool = False,
     ) -> None:
         """Initialize an Invariant instance.
 
         Args:
-            fn: Callable accepting state and returning True if valid, False if invalid.
+            fn: Callable accepting state. By default it must return True if valid and
+                False if invalid; returning None is treated as a failure (a forgotten
+                ``return`` must never silently pass a safety rule).
             name: Rule identifier. Defaults to function name.
             description: Description of the rule. Defaults to function docstring.
             mode: Operating mode ('block' or 'warn').
             error_message: Custom failure message.
+            raises: Assertion style. If True the rule passes when ``fn`` returns
+                normally (any value except an explicit False) and fails when it raises;
+                the exception text becomes the failure message.
         """
+        self.raises = raises
         self.fn = fn
         self.name = name or fn.__name__
         self.description = description or (fn.__doc__.strip() if fn.__doc__ else "")
@@ -65,11 +72,21 @@ class Invariant:
         """Evaluate the invariant function against state."""
         try:
             result = self.fn(state)
-            is_valid = bool(result)
-            msg = "Passed" if is_valid else self.error_message
+            if self.raises:
+                is_valid = result is not False
+                msg = "Passed" if is_valid else self.error_message
+            elif result is None:
+                is_valid = False
+                msg = (
+                    f"Invariant rule '{self.name}' returned None. Return True/False, or "
+                    "register it with raises=True if it signals violations by raising."
+                )
+            else:
+                is_valid = bool(result)
+                msg = "Passed" if is_valid else self.error_message
         except Exception as e:
             is_valid = False
-            msg = f"Exception during rule execution: {str(e)}"
+            msg = str(e) if self.raises and str(e) else f"Exception during rule execution: {str(e)}"
 
         state_dict = state.to_dict() if hasattr(state, "to_dict") else dict(state)
 
@@ -94,6 +111,7 @@ class InvariantRegistry:
         mode: str = "block",
         description: Optional[str] = None,
         error_message: Optional[str] = None,
+        raises: bool = False,
     ) -> Callable:
         """Decorator to register an invariant function with the registry.
 
@@ -101,6 +119,11 @@ class InvariantRegistry:
             @registry.invariant(name="non_negative_balance", mode="block")
             def check_balance(state):
                 return state["balance"] >= 0
+
+            @registry.invariant(name="non_negative_balance", raises=True)
+            def check_balance(state):            # assertion style
+                if state["balance"] < 0:
+                    raise ValueError("Balance cannot go negative")
         """
 
         def decorator(fn: Callable[[Any], bool]) -> Callable[[Any], bool]:
@@ -110,6 +133,7 @@ class InvariantRegistry:
                 description=description,
                 mode=mode,
                 error_message=error_message,
+                raises=raises,
             )
             self.add(inv)
             return fn
@@ -126,10 +150,15 @@ class InvariantRegistry:
         mode: str = "block",
         description: Optional[str] = None,
         error_message: Optional[str] = None,
+        raises: bool = False,
     ) -> Callable:
         """Alias for register()."""
         return self.register(
-            name=name, mode=mode, description=description, error_message=error_message
+            name=name,
+            mode=mode,
+            description=description,
+            error_message=error_message,
+            raises=raises,
         )
 
     def check(

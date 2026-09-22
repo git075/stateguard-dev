@@ -28,6 +28,10 @@ def test_delete_file_compensation(tmp_path):
 
 @patch("urllib.request.urlopen")
 def test_webhook_rollback_compensation(mock_urlopen):
+    # Model a real 200 response (a bare MagicMock only "passed" before because its
+    # TypeError was swallowed by the compensation's own catch-all).
+    mock_urlopen.return_value.__enter__.return_value.getcode.return_value = 200
+
     # Get compensation fn
     comp_fn = compensations.webhook_rollback("http://example.com/webhook", {"status": "cancel"})
     

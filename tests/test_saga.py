@@ -3,7 +3,7 @@
 import unittest
 from stateguard.proxy import GuardedState
 from stateguard.invariants import InvariantRegistry, InvariantViolation
-from stateguard.saga import Saga
+from stateguard.saga import CompensationError, Saga
 
 
 class TestSagaCoordinator(unittest.TestCase):
@@ -146,11 +146,16 @@ class TestSagaCoordinator(unittest.TestCase):
         def step_c(state):
             raise RuntimeError("Step C failed")
 
-        with self.assertRaises(RuntimeError):
+        # A failed undo is no longer swallowed: the caller gets a CompensationError chained
+        # to the error that triggered the rollback, and the remaining undos still ran.
+        with self.assertRaises(CompensationError) as ctx:
             with saga as coord:
                 step_a(coord.state)
                 step_b(coord.state)
                 step_c(coord.state)
+
+        self.assertIsInstance(ctx.exception.original, RuntimeError)
+        self.assertEqual([f.description for f in ctx.exception.failures], ["Undo step_b"])
 
         # Both compensations attempted in LIFO order (step_b's faulty_undo first, then step_a's successful_undo)
         self.assertEqual(executed, ["faulty_attempted", "successful_executed"])

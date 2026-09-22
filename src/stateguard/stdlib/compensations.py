@@ -25,6 +25,7 @@ def delete_file(filepath: str, ignore_missing: bool = True) -> Callable[..., Any
                 logger.warning(f"[STATEGUARD UNDO] File not found to delete: {filepath}")
         except Exception as e:
             logger.error(f"[STATEGUARD UNDO] Failed to delete file {filepath}: {e}")
+            raise  # let the saga record it as a failed compensation instead of hiding it
 
     return compensate
 
@@ -45,13 +46,13 @@ def webhook_rollback(
             )
             with urllib.request.urlopen(req, timeout=timeout) as response:
                 if response.getcode() and response.getcode() >= 400:
-                    logger.error(
-                        f"[STATEGUARD UNDO] Webhook rollback to {url} failed with status {response.getcode()}"
+                    raise RuntimeError(
+                        f"Webhook rollback to {url} failed with status {response.getcode()}"
                     )
-                else:
-                    logger.info(f"[STATEGUARD UNDO] Webhook rollback fired to {url}")
+                logger.info(f"[STATEGUARD UNDO] Webhook rollback fired to {url}")
         except Exception as e:
             logger.error(f"[STATEGUARD UNDO] Webhook rollback to {url} failed: {e}")
+            raise  # a rollback that did not happen must not look like one that did
 
     return compensate
 

@@ -40,14 +40,18 @@ with Saga(state) as tx:
 - 🛡️ **Business Invariants**: Prevent agents from violating critical constraints.
 - 🔄 **Saga & Compensation**: Handle side-effect failures gracefully.
 - 🔒 **Namespace Isolation**: Keep multi-agent states from leaking.
-- 📊 **Drift Detection**: Catch hallucination drift statistically.
-- 🗄️ **SQLite Audit**: Full lineage tracking out-of-the-box.
+- 📊 **Drift Detection**: Catch hallucination drift statistically (standalone; you call it).
+- 🗄️ **SQLite Audit Store**: Append-only event log with a CLI (you log events explicitly).
+
+📖 **Full documentation:** [docs/API.md](./docs/API.md)
 
 ## 🔌 Integrations
 
-- [LangGraph Integration Guide](./examples/langgraph/README.md)
-- [CrewAI Integration Guide](./examples/crewai/README.md)
-- [AutoGen Integration Guide](./examples/autogen/README.md)
+- **LangGraph** — `guarded_node` (per-node guard) and `StateGuardCheckpointer` (wraps your saver). See [docs/API.md](./docs/API.md#5-langgraph) and [examples/langgraph](./examples/langgraph/README.md).
+- **CrewAI / AutoGen** — no dedicated adapters yet. `GuardedState` and `Saga` are plain Python, so you can wrap any agent step; see [examples/crewai](./examples/crewai/README.md) and [examples/autogen](./examples/autogen/README.md).
+
+> Invariants are checked when a transaction ends, i.e. *after* your code has run. Side effects
+> need a compensating action (`@saga_step(compensate=...)`) to be undone.
 
 ## 💬 What Developers Are Saying
 

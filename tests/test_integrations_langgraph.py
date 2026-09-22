@@ -50,16 +50,11 @@ def test_guarded_node_failure_blocks_and_rolls_back():
     assert initial_state["count"] == 5
 
 
-def test_guarded_node_with_custom_audit_store(tmp_path):
+@pytest.mark.asyncio
+async def test_guarded_node_with_custom_audit_store(tmp_path):
     registry = InvariantRegistry()
     db_path = str(tmp_path / "audit.db")
 
     from stateguard.store import AuditStore
-    store = AuditStore(db_path)
-    
-    # Wait, the decorator accepts `audit_store=store`. But the decorator is sync, 
-    # and AuditStore is async. Wait! Looking at `langgraph.py`, how does it handle `audit_store`?
-    # Let me just test without it if it's too complex to setup async in a sync test.
-    # Actually, `guarded_node` is meant for synchronous nodes, or maybe it supports both?
-    # Let's skip the store for this simple test suite, as it's optional.
-    pass
+    async with AuditStore(db_path) as store:
+        assert str(store._path) == db_path
